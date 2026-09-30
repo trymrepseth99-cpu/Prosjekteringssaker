@@ -119,7 +119,7 @@ const fbucket=d=>{const x=dl(d);return x===null?4:x<0?0:x<=7?1:x<=14?2:3};
 const bucket=d=>BK.findIndex(b=>age(d)>=b[1]&&age(d)<=b[2]);
 const LBL={status:'Status',gruppe:'Gruppe',typ:'Type',bygg:'Bygg/område',niva:'Nivå',mnd:'Måned',alder:'Alder',frist:'Frist'};
 const F={frist:null,status:null,gruppe:null,typ:null,bygg:null,niva:null,mnd:null,alder:null};
-const val=(d,k)=>k==='status'?d.status:k==='mnd'?d.opp.slice(0,7):k==='alder'?(act(d)?String(bucket(d)):null):k==='frist'?(K(d)==='o'?String(fbucket(d)):null):(d[k]||'Ikke oppgitt');
+const val=(d,k)=>k==='status'?d.status:k==='mnd'?d.opp.slice(0,7):k==='alder'?(act(d)?String(bucket(d)):null):k==='frist'?((K(d)==='o'||(F.status==='Løst'&&K(d)==='l'))?String(fbucket(d)):null):(d[k]||'Ikke oppgitt');
 const data=skip=>D0.filter(d=>Object.keys(F).every(k=>k===skip||F[k]===null||val(d,k)===F[k]));
 const MONTHS=[...new Set(D0.map(d=>d.opp.slice(0,7)))].sort();
 const shown=(k,v)=>k==='alder'?BK[+v][0]:k==='frist'?FB[+v]:k==='mnd'?v.slice(5)+'/'+v.slice(0,4):v;
@@ -164,19 +164,20 @@ function drawLine(){const src=data('mnd'),m={};MONTHS.forEach(k=>m[k]=[0,0,0]);s
  g+=`<text x="${X(MONTHS.length-1)}" y="${Y(a)-8}" text-anchor="end">${a}</text><text x="${X(MONTHS.length-1)}" y="${Y(b)+16}" text-anchor="end">${b}</text><text x="${X(MONTHS.length-1)}" y="${Y(c)-8}" text-anchor="end">${c}</text>`;
  $('line').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Akkumulert antall prosjekteringssaker per status">${g}</svg>`}
 
-function drawKpis(D){const A=D.filter(act),C=D.filter(d=>!act(d)),nO=D.filter(d=>K(d)==='o').length,nL=D.filter(d=>K(d)==='l').length;
- const O=D.filter(d=>K(d)==='o'),overdue=O.filter(d=>d.frist&&d.frist<today).length,week=O.filter(d=>fbucket(d)===1).length;
+function drawKpis(D){const B=data('status'),sc=F.status||'Åpen',sk={'Åpen':'o','Løst':'l','Lukket':'c'}[sc],SL={'Åpen':'Åpne saker','Løst':'Løste saker','Lukket':'Lukkede saker'}[sc],rel=sk!=='c';
+ const A=D.filter(act),S=B.filter(d=>K(d)===sk),C=B.filter(d=>K(d)==='c'),nS=S.length;
+ const overdue=rel?S.filter(d=>d.frist&&d.frist<today).length:0,week=rel?S.filter(d=>fbucket(d)===1).length:0;
  const ages=A.map(age).sort((a,b)=>a-b),med=ages.length?ages[Math.floor(ages.length/2)]:0,oldest=A.length?A.reduce((a,b)=>age(b)>age(a)?b:a):null;
  const gm={};A.forEach(d=>gm[d.gruppe]=(gm[d.gruppe]||0)+1);const tg=Object.entries(gm).sort((a,b)=>b[1]-a[1])[0]||['–',0];
- const pct=D.length?Math.round(C.length/D.length*100):0,po=O.length?Math.round(overdue/O.length*100):0;
+ const pct=B.length?Math.round(C.length/B.length*100):0,po=nS?Math.round(overdue/nS*100):0;
  const card=(c,l,v,s,k,v2)=>`<div class="kpi ${c}${k?' clk'+(F[k]===v2?' sel':''):''}" ${k?at(k,v2)+' role="button" tabindex="0" title="Klikk for å filtrere"':''}><div class="l">${l}${k?' <span class="go">›</span>':''}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`;
  $('kpis').innerHTML=[
-  card('hero','Åpne saker',nO,(D.length?Math.round(nO/D.length*100):0)+' % av '+fmt(D.length)+' saker'),
-  card(overdue?'warn':'','Utløpt frist',overdue,po+' % av åpne saker','frist','0'),
-  card('','Frist denne uken',week,'innen 7 dager','frist','1'),
+  card('hero',SL,nS,(B.length?Math.round(nS/B.length*100):0)+' % av '+fmt(B.length)+' saker'),
+  rel?card(overdue?'warn':'','Utløpt frist',overdue,po+' % av '+SL.toLowerCase(),'frist','0'):card('','Utløpt frist','–','gjelder ikke lukkede saker'),
+  rel?card('','Frist denne uken',week,'innen 7 dager','frist','1'):card('','Frist denne uken','–','gjelder ikke lukkede saker'),
   card('','Flest uløste',tg[0].replace(/^\d+\.\d+\s+/,'').split(' ')[0],tg[1]+' saker · '+(A.length?Math.round(tg[1]/A.length*100):0)+' %','gruppe',tg[0]),
   card('','Typisk saksalder',med+' d',oldest?'eldste '+age(oldest)+' d (sak '+oldest.nr+')':'–'),
-  card('','Lukket-andel',pct+' %',fmt(C.length)+' av '+fmt(D.length)+' saker')
+  card('','Lukket-andel',pct+' %',fmt(C.length)+' av '+fmt(B.length)+' saker')
  ].join('')}
 
 function drawStatus(){const S=data('status'),cnt={Lukket:0,'Løst':0,'Åpen':0};S.forEach(d=>cnt[d.status]++);const t=S.length||1;
