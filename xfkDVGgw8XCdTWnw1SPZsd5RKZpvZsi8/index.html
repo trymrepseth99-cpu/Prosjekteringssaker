@@ -90,7 +90,7 @@ footer b{color:var(--af)}
 <section id="s-niva"><h2>Nivå <small>kjeller, plan og tak</small></h2><div class="bars" id="niva"></div></section>
 </div>
 <div class="split">
-<section id="s-frist"><h2>Frister <small>åpne og løste saker</small></h2><div id="frist" class="fr"></div></section>
+<section id="s-frist"><h2>Frister <small>åpne saker</small></h2><div id="frist" class="fr"></div></section>
 <section id="s-alder"><h2>Alder <small>åpne og løste, siden opprettelse</small></h2><div class="bars" id="alder"></div></section>
 </div>
 <section id="s-ball"><h2>Status per fagområde <small>åpen, løst og lukket per fag. Klikk en rad for å filtrere</small></h2><div class="tw" id="ballw"></div></section>
@@ -118,7 +118,7 @@ const fbucket=d=>{const x=dl(d);return x===null?4:x<0?0:x<=7?1:x<=14?2:3};
 const bucket=d=>BK.findIndex(b=>age(d)>=b[1]&&age(d)<=b[2]);
 const LBL={status:'Status',gruppe:'Gruppe',typ:'Type',bygg:'Bygg/område',niva:'Nivå',mnd:'Måned',alder:'Alder',frist:'Frist'};
 const F={frist:null,status:null,gruppe:null,typ:null,bygg:null,niva:null,mnd:null,alder:null};
-const val=(d,k)=>k==='status'?d.status:k==='mnd'?d.opp.slice(0,7):k==='alder'?(act(d)?String(bucket(d)):null):k==='frist'?(act(d)?String(fbucket(d)):null):(d[k]||'Ikke oppgitt');
+const val=(d,k)=>k==='status'?d.status:k==='mnd'?d.opp.slice(0,7):k==='alder'?(act(d)?String(bucket(d)):null):k==='frist'?(K(d)==='o'?String(fbucket(d)):null):(d[k]||'Ikke oppgitt');
 const data=skip=>D0.filter(d=>Object.keys(F).every(k=>k===skip||F[k]===null||val(d,k)===F[k]));
 const MONTHS=[...new Set(D0.map(d=>d.opp.slice(0,7)))].sort();
 const shown=(k,v)=>k==='alder'?BK[+v][0]:k==='frist'?FB[+v]:k==='mnd'?v.slice(5)+'/'+v.slice(0,4):v;
@@ -164,14 +164,14 @@ function drawLine(){const src=data('mnd'),m={};MONTHS.forEach(k=>m[k]=[0,0,0]);s
  $('line').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Akkumulert antall prosjekteringssaker per status">${g}</svg>`}
 
 function drawKpis(D){const A=D.filter(act),C=D.filter(d=>!act(d)),nO=D.filter(d=>K(d)==='o').length,nL=D.filter(d=>K(d)==='l').length;
- const overdue=A.filter(d=>d.frist&&d.frist<today).length,week=A.filter(d=>fbucket(d)===1).length;
+ const O=D.filter(d=>K(d)==='o'),overdue=O.filter(d=>d.frist&&d.frist<today).length,week=O.filter(d=>fbucket(d)===1).length;
  const ages=A.map(age).sort((a,b)=>a-b),med=ages.length?ages[Math.floor(ages.length/2)]:0,oldest=A.length?A.reduce((a,b)=>age(b)>age(a)?b:a):null;
  const gm={};A.forEach(d=>gm[d.gruppe]=(gm[d.gruppe]||0)+1);const tg=Object.entries(gm).sort((a,b)=>b[1]-a[1])[0]||['–',0];
- const pct=D.length?Math.round(C.length/D.length*100):0,po=A.length?Math.round(overdue/A.length*100):0;
+ const pct=D.length?Math.round(C.length/D.length*100):0,po=O.length?Math.round(overdue/O.length*100):0;
  const card=(c,l,v,s,k,v2)=>`<div class="kpi ${c}${k?' clk'+(F[k]===v2?' sel':''):''}" ${k?at(k,v2)+' role="button" tabindex="0" title="Klikk for å filtrere"':''}><div class="l">${l}${k?' <span class="go">›</span>':''}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`;
  $('kpis').innerHTML=[
   card('hero','Åpen og løst',A.length,nO+' åpne · '+nL+' løst'),
-  card(overdue?'warn':'','Utløpt frist',overdue,po+' % av åpne og løste','frist','0'),
+  card(overdue?'warn':'','Utløpt frist',overdue,po+' % av åpne saker','frist','0'),
   card('','Frist denne uken',week,'innen 7 dager','frist','1'),
   card('','Flest uløste',tg[0].replace(/^\d+\.\d+\s+/,'').split(' ')[0],tg[1]+' saker · '+(A.length?Math.round(tg[1]/A.length*100):0)+' %','gruppe',tg[0]),
   card('','Typisk saksalder',med+' d',oldest?'eldste '+age(oldest)+' d (sak '+oldest.nr+')':'–'),
@@ -189,11 +189,11 @@ function drawStatus(){const S=data('status'),cnt={Lukket:0,'Løst':0,'Åpen':0};
  pie('pie2',h.map((x,i)=>[x[0],x[1],cols[i%cols.length],'gruppe']).concat(rest?[['Øvrige',rest,cols[6],null]]:[]))}
 
 function drawAge(){const A=data('alder').filter(act),mx=Math.max(1,...BK.map((b,i)=>A.filter(d=>bucket(d)===i).length));
- $('alder').innerHTML='<div class="bh"><span>Alder</span><span></span><span>Antall</span><span>Utløpt frist</span></div>'+BK.map(([n],i)=>{const s=A.filter(d=>bucket(d)===i),od=s.filter(d=>d.frist&&d.frist<today).length;
+ $('alder').innerHTML='<div class="bh"><span>Alder</span><span></span><span>Antall</span><span>Utløpt frist</span></div>'+BK.map(([n],i)=>{const s=A.filter(d=>bucket(d)===i),od=s.filter(d=>K(d)==='o'&&d.frist&&d.frist<today).length;
   return `<div class="br ${cls('alder',String(i))}" ${at('alder',i)} role="button" tabindex="0"><div class="n">${n}</div><div class="tr"><div class="t" style="width:${s.length/mx*100}%"><div class="o" style="flex:1"></div></div></div><div class="x tot">${s.length}</div><div class="x op${od?'':' z'}">${od||'–'}</div></div>`}).join('')}
 
 const FS=['Utløpt','0–7 d','8–14 d','Over 14 d','Ingen'];
-function drawFrist(){const A=data('frist').filter(act),n=FB.slice(0,4).map((_,i)=>A.filter(d=>fbucket(d)===i).length),mx=Math.max(1,...n);
+function drawFrist(){const A=data('frist').filter(d=>K(d)==='o'),n=FB.slice(0,4).map((_,i)=>A.filter(d=>fbucket(d)===i).length),mx=Math.max(1,...n);
  $('frist').innerHTML='<div class="cols">'+FB.slice(0,4).map((t,i)=>`<div class="col ${cls('frist',String(i))}" ${at('frist',i)} role="button" tabindex="0" title="${esc(t)}: ${n[i]}"><div class="cv">${n[i]}</div><div class="cw"><div class="cb" style="height:${Math.max(n[i]/mx*100,n[i]?3:0)}%;background:${i===0?'#d92d20':'var(--open)'}"></div></div><div class="cl">${FS[i]}</div></div>`).join('')+'</div>'}
 const TS={};
 function drawHeat(){const src=D0.filter(d=>act(d)&&Object.keys(F).every(k=>k==='gruppe'||k==='typ'||F[k]===null||val(d,k)===F[k]));
@@ -212,7 +212,7 @@ function drawTreemap(){const all=grp('bygg',data('bygg')).map(([k,v])=>[k,v.c+v.
  $('bygg').innerHTML='<div class="tmap">'+out.map(([[k,t,o],x,y,w,h])=>{const al=.18+.82*(o/t)/mx;
   return `<div class="tm ${cls('bygg',k)}" ${at('bygg',k)} role="button" tabindex="0" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><div class="tmi" style="background:rgba(255,205,0,${al.toFixed(2)});color:${al>.5?'#2b2b2b':'var(--fg)'}"><b>${esc(k)}</b><span>${t} saker · ${o} åpne og løste</span></div></div>`}).join('')+'</div>'}
 const TVM=matchMedia('(min-width:2200px) and (min-height:1200px)');
-function drawBall(){const S=data('gruppe'),m={};S.forEach(d=>{const e=m[d.gruppe]=m[d.gruppe]||{o:0,l:0,c:0,od:0,old:null};e[K(d)]++;if(act(d)){if(d.frist&&d.frist<today)e.od++;const x=age(d);if(e.old===null||x>e.old)e.old=x}});
+function drawBall(){const S=data('gruppe'),m={};S.forEach(d=>{const e=m[d.gruppe]=m[d.gruppe]||{o:0,l:0,c:0,od:0,old:null};e[K(d)]++;if(K(d)==='o'&&d.frist&&d.frist<today)e.od++;if(act(d)){const x=age(d);if(e.old===null||x>e.old)e.old=x}});
  const rows=Object.entries(m).map(([g,e])=>[g,e.o,e.l,e.c,e.od,e.old]).sort((x,y)=>y[4]-x[4]||(y[1]+y[2])-(x[1]+x[2])||(y[1]+y[2]+y[3])-(x[1]+x[2]+x[3]));
  const w=$('ballw');
  if(!rows.length){w.innerHTML='<p class="foot">Ingen saker</p>';return}
@@ -241,7 +241,7 @@ function drawTable(){const q=$('q').value.toLowerCase();
  else a.sort((x,y)=>RK[x.status]-RK[y.status]||y.opp.localeCompare(x.opp));
  document.querySelectorAll('.srt').forEach(h=>h.lastChild.textContent=h.dataset.s===sortK?(sortD>0?'▲':'▼'):'');
  lastList=a;
- $('rows').innerHTML=a.slice(0,lim).map(d=>{const o=openRows.has(d.nr);return `<tr class="rw" data-nr="${esc(d.nr)}"><td class="num"><b>${esc(d.nr)}</b></td><td>${esc(d.tittel)}${o?`<div class="full">${esc(d.besk||'')}</div>`:`<div class="foot" style="margin:2px 0 0">${esc((d.besk||'').slice(0,140))}</div>`}</td><td><span class="pill ${K(d)}">${esc(d.status)}</span></td><td>${esc(d.gruppe)}</td><td>${esc(d.ans)}</td><td class="dt">${d.opp}</td><td class="dt ${act(d)&&d.frist&&d.frist<today?'late':''}">${d.frist||''}</td></tr>`}).join('');
+ $('rows').innerHTML=a.slice(0,lim).map(d=>{const o=openRows.has(d.nr);return `<tr class="rw" data-nr="${esc(d.nr)}"><td class="num"><b>${esc(d.nr)}</b></td><td>${esc(d.tittel)}${o?`<div class="full">${esc(d.besk||'')}</div>`:`<div class="foot" style="margin:2px 0 0">${esc((d.besk||'').slice(0,140))}</div>`}</td><td><span class="pill ${K(d)}">${esc(d.status)}</span></td><td>${esc(d.gruppe)}</td><td>${esc(d.ans)}</td><td class="dt">${d.opp}</td><td class="dt ${K(d)==='o'&&d.frist&&d.frist<today?'late':''}">${d.frist||''}</td></tr>`}).join('');
  $('more').hidden=a.length<=lim;$('moreAll').hidden=a.length<=lim;$('moreAll').textContent='Vis alle ('+a.length+')';$('cnt').textContent=`Viser ${Math.min(lim,a.length)} av ${a.length} saker`;
  ['tOpen','tSolved','tClosed','tAll'].forEach((id,i)=>$(id).setAttribute('aria-pressed',['Åpen','Løst','Lukket','all'][i]===mode))}
 
