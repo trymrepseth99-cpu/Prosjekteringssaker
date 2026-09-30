@@ -171,7 +171,7 @@ function drawKpis(D){const A=D.filter(act),C=D.filter(d=>!act(d)),nO=D.filter(d=
  const pct=D.length?Math.round(C.length/D.length*100):0,po=O.length?Math.round(overdue/O.length*100):0;
  const card=(c,l,v,s,k,v2)=>`<div class="kpi ${c}${k?' clk'+(F[k]===v2?' sel':''):''}" ${k?at(k,v2)+' role="button" tabindex="0" title="Klikk for å filtrere"':''}><div class="l">${l}${k?' <span class="go">›</span>':''}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`;
  $('kpis').innerHTML=[
-  card('hero','Åpen og løst',A.length,nO+' åpne · '+nL+' løst'),
+  card('hero','Åpne saker',nO,(D.length?Math.round(nO/D.length*100):0)+' % av '+fmt(D.length)+' saker'),
   card(overdue?'warn':'','Utløpt frist',overdue,po+' % av åpne saker','frist','0'),
   card('','Frist denne uken',week,'innen 7 dager','frist','1'),
   card('','Flest uløste',tg[0].replace(/^\d+\.\d+\s+/,'').split(' ')[0],tg[1]+' saker · '+(A.length?Math.round(tg[1]/A.length*100):0)+' %','gruppe',tg[0]),
